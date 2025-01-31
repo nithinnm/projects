@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #container {
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1, h2, h4 {
+            color: #007bff;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        h4 {
+            font-size: 18px;
+        }
+
+        #imageInput, #predictButton, #downloadButton {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #imageInput:hover, #predictButton:hover, #downloadButton:hover {
+            background-color: #0056b3;
+        }
+
+        #reportSection {
+            margin-top: 40px;
+            display: none;
+        }
+
+        #reportContent {
+            text-align: left;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        #reportContent h1 {
+            color: #007bff;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #reportContent p {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        #reportContent p:last-child {
+            margin-bottom: 0;
+        }
+
+        #reportContent p.signature {
+            margin-top: 20px;
+        }
+
+        #reportContent p.disclaimer {
+            font-style: italic;
+            color: #666;
+        }
+
+        .animated {
+            animation-duration: 1s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .fadeIn {
+            animation-name: fadeIn;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <div id="container" class="animated fadeIn">
+        <h1>DETECTION OF DOWN SYNDROME IN FETAL IMAGE</h1>
+        <h4>Kindly input the fetal image</h4>
+        <input type="file" id="imageInput" accept=".png, .jpg, .jpeg">
+        <button id="predictButton" class="animated fadeIn">Predict</button>
+        <div id="resultLabel" class="animated fadeIn"></div>
+        <div id="reportSection" class="animated fadeIn">
+            <h2>Diagnostic Report</h2>
+            <div id="reportContent">
+                
+            </div>
+            <button id="downloadButton" class="animated fadeIn">DOWNLOAD REPORT</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictButton').addEventListener('click', function() {
+            var formData = new FormData();
+            var fileInput = document.getElementById('imageInput');
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result) {
+                    document.getElementById('resultLabel').innerText = "Prediction: " + data.result;
+                    // Display the report section with animation
+                    document.getElementById('reportSection').style.display = 'block';
+                    document.getElementById('reportSection').classList.add('fadeIn');
+                    // Generate and display the report content
+                    generateReport(data.result);
+                } else if (data.error) {
+                    document.getElementById('resultLabel').innerText = "Error: " + data.error;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        function generateReport(prediction) {
+            // You can customize the report content based on the prediction result
+            var reportContent = document.getElementById('reportContent');
+            var reportText = "";
+            var currentDate = new Date().toLocaleString();
+
+            if (prediction === 'Syndrome') {
+                reportText = `
+                    <h1>DOWNSYNDROME DETECTION BY DEEP LEARNING</h1>
+                    <p>THIS IS TO CERTIFY THAT</p>
+                    <p>The fetal image shows characteristics consistent with Down syndrome.</p>
+                    <p>Date and Time: ${currentDate}</p>
+                    <p> Down syndrome is a genetic disorder caused by the presence of all or part of a third copy of chromosome 21. It is typically associated with physical growth delays, characteristic facial features, and mild to moderate intellectual disability.</p>
+                    <p class="signature">Doctor's Signature: ________________________</p>
+                    <p class="signature">Patient's Signature: _______________________</p>
+                    <p class="disclaimer">Model accuracy varies with data sets available hence please co-verify with a proper doctor.</p>
+                `;
+            } else if (prediction === 'Normal') {
+                reportText = `
+                    <h1>DOWNSYNDROME DETECTION BY DEEP LEARNING</h1>
+                    <p>THIS IS TO CERTIFY THAT</p>
+                    <p>The fetal image does not show any abnormalities indicative of Down syndrome.</p>
+                    <p>Date and Time: ${currentDate}</p>
+                    <p class="signature">Doctor's Signature: ________________________</p>
+                    <p class="signature">Patient's Signature: _______________________</p>
+                    <p class="disclaimer">Model accuracy varies with data sets available hence please co-verify with a proper doctor.</p>
+                `;
+            } else {
+                reportText = "<p>Unable to generate a conclusive report based on the provided image.</p>";
+            }
+
+            reportContent.innerHTML = reportText;
+        }
+
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            var reportContent = document.getElementById('reportContent').innerHTML;
+
+            // Convert HTML content to Word document format
+            var wordContent = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Document</title></head><body>' + reportContent + '</body></html>';
+            var blob = new Blob(['\ufeff', wordContent], {
+                type: 'application/msword'
+            });
+
+            // Create a URL for the blob
+            var url = window.URL.createObjectURL(blob);
+
+            // Create a temporary link element
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = 'report.doc'; // Specify the file name for download
+
+            // Trigger a click event on the link
+            link.click();
+
+            // Clean up
+            window.URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
